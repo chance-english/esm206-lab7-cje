@@ -1,0 +1,197 @@
+---
+title: "esm206-lab7-cje-MLR"
+author: "Chance English"
+date: "11/8/2021"
+output: html_document
+---
+
+```{r setup, include=TRUE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+
+
+library(tidyverse)
+library(here)
+library(palmerpenguins)
+library(ggplot2)
+library(GGally)
+library(broom)
+library(kableExtra)
+library(modelsummary)
+library(stargazer)
+```
+
+
+
+### Intro to GGally : ggpairs() function to create a pairs plot
+
+```{r}
+
+ggpairs(penguins)
+
+
+
+
+
+```
+
+
+```{r}
+ 
+penguins %>% 
+  select(species, bill_length_mm: body_mass_g) %>% 
+  ggpairs(aes(color = species))
+
+
+penguins %>% ggplot(aes (x = bill_depth_mm, y = body_mass_g, group = species)) +
+  geom_point(aes(color = species)) +
+  geom_smooth( method = "lm")
+
+
+# Simpsons Paradox; relationship reverses if we don't account for some variable (in this case not including species as a vairbale results in a negative relationshop between bill depth and body mass)
+
+```
+
+
+## Multiple Linear Regression - penguins
+
+Use MLR to try to understand the relaitonshio between multiple predictor variables and a single continuous outcome variable (body mass)
+
+```{r}
+
+penguin_lm <- lm(body_mass_g ~ flipper_length_mm + bill_depth_mm, data = penguins)
+
+
+plot(penguin_lm)
+
+penguin_lm
+
+```
+
+
+How would you interpret this coefficient for flipper_length_mm?
+
+We would expect, on average, a 51.54 g increase in penguin body mass for each 1mm increase in flipper length, if evertything else is held constant 
+
+
+### Use summary() function to get more information on the model
+
+```{r}
+
+summary(penguin_lm)
+
+
+```
+
+A non-significant coefficient does not mean that you should drop that value from the model
+
+
+#### Use the 'broom' functions tidy and glance 
+
+Use broom::tidy to get the coefficient summary in a data frame
+Use broom:glance to get the model summary ina  data frame 
+
+
+
+```{r}
+
+penguin_lm_tidy <- tidy(penguin_lm)
+penguin_lm_tidy
+
+
+
+
+```
+
+For each mm increase in bill depth length, on average555 there is a `r round(penguin_lm_tidy$estimate[3], 1)` g increase in penguin body mass. 
+
+
+
+
+## Try another model
+
+We've thought alot of about it... the 3 best variables to include in the model are 
+
+- flipper length
+- species
+- sex 
+
+Task: create a MLR regression model using those 3 predictor variables 
+
+
+
+```{r}
+
+penguins_lm_2 <- lm(body_mass_g ~ flipper_length_mm + species + sex, data = penguins)
+
+penguins_lm_2
+
+summary(penguins_lm_2)
+
+penguins_lm_2_tidy <- tidy(penguins_lm_2)
+penguins_lm_2_tidy
+```
+
+
+bodymass = 365.82 + 20.02*flipperlenghth - 87.63*chinstrap + 836.26*gentoo + 530.38*male 
+
+Interpreting coefficients with a reference level 
+
+If everything else is the same then on average we expect a gento penguin to weigh 836.26 g more than an adelie 
+Chinstrap penguins we expect to be 87.63 g less than an adelie 
+
+Predict the mass of a penguin that has a flipper length of 180 mm that is a chinstrap penguin that is female you would plug in a 1 or 0 to evaluate the model 
+
+Estimate body mass of an male adelie penguin with flippers thate were 200 mm long 
+
+Body Mass = `r mass = 365.82 + 20.02 * 200 + 0*-87.63 + 0*836.26 + 530.38 ` = 4900.2 g
+
+
+Need to look at the residuals to evaluate the model
+  - normal
+  -homoscadasticity 
+
+```{r}
+augment(penguins_lm_2)
+
+# Compare real data to fitted model
+
+```
+
+```{r}
+
+plot(penguins_lm_2)
+
+
+```
+
+- QQ Plot: residuals are normally distributed (plot 2)
+- Plot 1 & 3; vertical distribution of values (residuals) are constistently spread across the model
+- Shows any points pulling a disproportional amount of weight 
+- Conceptual Understanding and expertise that allow me to responsible determine that penguin species, sex and flipper length are reasonable predictor variabless
+
+
+
+## Make output tables 
+
+Using Model Summary
+```{r}
+ 
+modelsummary(penguins_lm_2)
+
+
+```
+
+
+
+
+
+Using Stargazer 
+
+```{r, results="asis"}
+
+stargazer(penguins_lm_2, type = "html")
+
+# Need to include asis in the set up as knit will try to render an html but its already an html
+
+```
+
